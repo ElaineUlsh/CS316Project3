@@ -50,9 +50,12 @@ public class TCPFileServer {
                     break;
 
                 case "L": // list command
+                    System.out.println("Listing Files...");
+
                     break;
 
                 case "R": // rename command
+                    System.out.println("");
                     break;
 
                 case "U": // upload command
