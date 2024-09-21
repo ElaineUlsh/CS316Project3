@@ -63,6 +63,15 @@ public class TCPFIleClient {
 
                     //TODO: receive server status code and tell user whether the file was successfully renamed.
 
+                    ByteBuffer renameReplyBuffer = ByteBuffer.allocate(1024);
+                    int bytesReadForRenameReply = renameChannel.read(renameReplyBuffer);
+                    renameChannel.close();
+                    renameReplyBuffer.flip();
+                    byte[] renameReply = new byte[bytesReadForRenameReply];
+                    renameReplyBuffer.get(renameReply);
+                    String renameServerMessage = new String(renameReply);
+                    System.out.println(renameServerMessage);
+
                     break;
 
                 case "U": // upload command
