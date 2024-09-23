@@ -27,6 +27,7 @@ public class TCPFileServer {
             switch (command) { // mirrors the client side
                 case "D": // delete command
                     byte[] byteFileName = new byte[request.remaining()]; // request.remaining() returns the amount of remaining bytes in the buffer
+                    request.get(byteFileName);
                     String fileName = new String(byteFileName);
 
                     System.out.println("File to delete: " + fileName);
@@ -53,12 +54,27 @@ public class TCPFileServer {
                 case "L": // list command
                     System.out.println("Listing Files...");
 
+                    File folder = new File("ServerFiles/"); // folder object
+                    File[] fileNames = folder.listFiles();
+
+                    String listReplyCode = "";
+                    for (int i = 0; i < fileNames.length; i++) {
+                        listReplyCode += fileNames[0].getName() + "\n";
+                    }
+
+                    System.out.println(listReplyCode);
+
+                    ByteBuffer listReply = ByteBuffer.wrap(listReplyCode.getBytes());
+                    serveChannel.write(listReply);
+                    serveChannel.close();
+
                     break;
 
                 case "R": // rename command
                     byte semicolon = 0x3B;
 
                     byte[] remainingBytes = new byte[request.remaining()];
+                    request.get(remainingBytes);
                     byte[] originalFileNameBytes = new byte[1024];
                     byte[] newFileNameBytes = new byte[1024];
 

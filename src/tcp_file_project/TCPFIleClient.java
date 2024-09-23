@@ -31,7 +31,14 @@ public class TCPFIleClient {
                     deleteChannel.write(deleteRequest);
                     deleteChannel.shutdownOutput();
 
-                    //TODO: receive server status code and tell user whether the file was successfully deleted.
+                    ByteBuffer deleteReplyBuffer = ByteBuffer.allocate(1024);
+                    int bytesReadForDeleteReply = deleteChannel.read(deleteReplyBuffer);
+                    deleteChannel.close();
+                    deleteReplyBuffer.flip();
+                    byte[] deleteReply = new byte[bytesReadForDeleteReply];
+                    deleteReplyBuffer.get(deleteReply);
+                    String deleteServerMessage = new String(deleteReply);
+                    System.out.println(deleteServerMessage);
 
                     break;
 
@@ -44,6 +51,20 @@ public class TCPFIleClient {
                     listChannel.shutdownOutput();
 
                     //TODO: receive server status code and tell user whether the file was successfully listed or list itself.
+
+                    //use while loop -- you may not be able to use everything all at once.
+
+                    /*
+                    ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
+                    int bytesReadForListReply = listChannel.read(listReplyBuffer);
+                    listChannel.close();
+                    listReplyBuffer.flip();
+                    byte[] listReply = new byte[bytesReadForListReply];
+                    listReplyBuffer.get(listReply);
+                    String listServerMessage = new String(listReply);
+                    System.out.println(listServerMessage);
+
+                     */
 
                     break;
 
@@ -60,8 +81,6 @@ public class TCPFIleClient {
                     renameChannel.connect(new InetSocketAddress(args[0], serverPort));
                     renameChannel.write(renameRequest);
                     renameChannel.shutdownOutput();
-
-                    //TODO: receive server status code and tell user whether the file was successfully renamed.
 
                     ByteBuffer renameReplyBuffer = ByteBuffer.allocate(1024);
                     int bytesReadForRenameReply = renameChannel.read(renameReplyBuffer);
