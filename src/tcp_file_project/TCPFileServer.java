@@ -1,10 +1,13 @@
 package tcp_file_project;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 public class TCPFileServer {
@@ -16,13 +19,15 @@ public class TCPFileServer {
             SocketChannel serveChannel = listenChannel.accept();
 
             ByteBuffer request = ByteBuffer.allocate(1024);
-            int numBytes = serveChannel.read(request);
+            // int numBytes = serveChannel.read(request);
             request.flip();
 
             byte[] byteCommand = new byte[1]; // the number of bytes depends of the number of bytes that your command is
             request.get(byteCommand);
             String command = new String(byteCommand);
             System.out.println("\nReceived Command: " + command);
+
+            byte semicolon = 0x3B;
 
             switch (command) { // mirrors the client side
                 case "D": // delete command
@@ -59,7 +64,7 @@ public class TCPFileServer {
 
                     String listReplyCode = "";
                     for (int i = 0; i < fileNames.length; i++) {
-                        listReplyCode += fileNames[0].getName() + "\n";
+                        listReplyCode += fileNames[i].getName() + "\n";
                     }
 
                     System.out.println(listReplyCode);
@@ -71,8 +76,6 @@ public class TCPFileServer {
                     break;
 
                 case "R": // rename command
-                    byte semicolon = 0x3B;
-
                     byte[] remainingBytes = new byte[request.remaining()];
                     request.get(remainingBytes);
                     byte[] originalFileNameBytes = new byte[1024];
@@ -111,9 +114,57 @@ public class TCPFileServer {
                     break;
 
                 case "U": // upload command
+                    byte[] uploadBytes = new byte[request.remaining()];
+                    request.get(uploadBytes);
+
+                    byte[] uploadFileNameBytes = new byte[1024];
+                    byte[] newFileBytes = new byte[1024];
+
+                    for (int i = 0; i < uploadBytes.length; i++) { // separating the new and original file names
+                        if (uploadBytes[i] == semicolon) {
+                            uploadFileNameBytes = Arrays.copyOfRange(uploadBytes, 0, i);
+                            newFileBytes = Arrays.copyOfRange(uploadBytes, i+1, uploadBytes.length);
+                        }
+                    }
+                    String uploadFileName = new String (uploadFileNameBytes);
+
+                    System.out.println("File being uploaded: " + uploadFileName);
+
+                    String path = "ServerFiles/" + uploadFileName;
+
+                    FileOutputStream uploadFile = new FileOutputStream(path);
+                    uploadFile.write(newFileBytes);
+
+                    File uploadedFile = new File(path);
+
+                    String uploadReplyCode = "F";
+                    if (uploadedFile.exists()) {
+                        uploadReplyCode = "S";
+                    }
+
+                    ByteBuffer uploadReply = ByteBuffer.wrap(uploadReplyCode.getBytes());
+                    serveChannel.write(uploadReply);
+                    serveChannel.close();
+
                     break;
 
                 case "G": // download command
+                    byte[] downloadByteFileName = new byte[request.remaining()]; // request.remaining() returns the amount of remaining bytes in the buffer
+                    request.get(downloadByteFileName);
+                    String downloadFileName = new String(downloadByteFileName);
+
+                    System.out.println("File to delete: " + downloadFileName);
+
+                    File downloadFile = new File("ServerFiles/" + downloadFileName); // for on our computers, a folder inside your project folder
+                    byte[] downloadReplyCode = new byte[1024];
+                    if (downloadFile.exists()) {
+                        downloadReplyCode = Files.readAllBytes(downloadFile.toPath());
+                    }
+
+                    ByteBuffer downloadReply = ByteBuffer.wrap(downloadReplyCode);
+                    serveChannel.write(downloadReply);
+                    serveChannel.close();
+
                     break;
 
                 default: // optional

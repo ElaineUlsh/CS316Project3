@@ -54,6 +54,22 @@ public class TCPFIleClient {
 
                     //use while loop -- you may not be able to use everything all at once.
 
+                    String listServerMessage = "List of Files: \n";
+
+                    //while() {
+                        ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
+                        int bytesReadForListReply = listChannel.read(listReplyBuffer);
+
+                        listReplyBuffer.flip();
+                        byte[] listReply = new byte[bytesReadForListReply];
+                        listReplyBuffer.get(listReply);
+
+                        String runningList = new String(listReply);
+                        listServerMessage += runningList;
+                    //}
+
+                    System.out.println(listServerMessage);
+
                     /*
                     ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
                     int bytesReadForListReply = listChannel.read(listReplyBuffer);
@@ -98,17 +114,29 @@ public class TCPFIleClient {
                     String uploadFileName = keyboard.nextLine();
 
                     File uploadFile = new File("ClientFiles/" + uploadFileName);
+                    String uploadBytes = command + uploadFileName + ";"; //+ uploadFileString;
+                    byte[] commandAndStringBytes = uploadBytes.getBytes();
+                    byte[] justFileBytes = Files.readAllBytes(uploadFile.toPath());
 
-                    byte[] uploadFileBytes = Files.readAllBytes(uploadFile.toPath());
+                    byte[] uploadFileBytes = new byte[commandAndStringBytes.length + justFileBytes.length];
 
                     ByteBuffer uploadRequest = ByteBuffer.wrap(uploadFileBytes);
+                    uploadRequest.put(commandAndStringBytes);
+                    uploadRequest.put(justFileBytes);
 
                     SocketChannel uploadChannel = SocketChannel.open();
                     uploadChannel.connect(new InetSocketAddress(args[0], serverPort));
                     uploadChannel.write(uploadRequest);
                     uploadChannel.shutdownOutput();
 
-                    //TODO: receive server status code and tell user whether the file was successfully uploaded.
+                    ByteBuffer uploadReplyBuffer = ByteBuffer.allocate(1024);
+                    int bytesReadForUploadReply = uploadChannel.read(uploadReplyBuffer);
+                    uploadChannel.close();
+                    uploadReplyBuffer.flip();
+                    byte[] uploadReply = new byte[bytesReadForUploadReply];
+                    uploadReplyBuffer.get(uploadReply);
+                    String uploadServerMessage = new String(uploadReply);
+                    System.out.println(uploadServerMessage);
 
                     break;
 
