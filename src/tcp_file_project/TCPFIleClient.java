@@ -1,6 +1,7 @@
 package tcp_file_project;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
@@ -56,9 +57,10 @@ public class TCPFIleClient {
 
                     String listServerMessage = "List of Files: \n";
 
-                    //while() {
+                    int bytesReadForListReply = 0;
+                    while(bytesReadForListReply != -1) {
                         ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
-                        int bytesReadForListReply = listChannel.read(listReplyBuffer);
+                        bytesReadForListReply = listChannel.read(listReplyBuffer);
 
                         listReplyBuffer.flip();
                         byte[] listReply = new byte[bytesReadForListReply];
@@ -66,21 +68,10 @@ public class TCPFIleClient {
 
                         String runningList = new String(listReply);
                         listServerMessage += runningList;
-                    //}
-
-                    System.out.println(listServerMessage);
-
-                    /*
-                    ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
-                    int bytesReadForListReply = listChannel.read(listReplyBuffer);
+                    }
                     listChannel.close();
-                    listReplyBuffer.flip();
-                    byte[] listReply = new byte[bytesReadForListReply];
-                    listReplyBuffer.get(listReply);
-                    String listServerMessage = new String(listReply);
-                    System.out.println(listServerMessage);
 
-                     */
+                    System.out.println(listServerMessage);
 
                     break;
 
@@ -151,12 +142,36 @@ public class TCPFIleClient {
                     downloadChannel.write(downloadRequest);
                     downloadChannel.shutdownOutput();
 
-                    //TODO: receive server status code and tell user whether the file was successfully downloaded.
+
+                    int bytesReadForDownloadReply = 0;
+                    //while(bytesReadForListReply != -1) {
+                    ByteBuffer downloadReplyBuffer = ByteBuffer.allocate(1024);
+                    bytesReadForDownloadReply = downloadChannel.read(downloadReplyBuffer);
+                    downloadChannel.close();
+                    downloadReplyBuffer.flip();
+                    byte[] downloadReply = new byte[bytesReadForDownloadReply];
+                    downloadReplyBuffer.get(downloadReply);
+
+                    String path = "ClientFiles/" + downloadFileName;
+
+                    FileOutputStream downloadFile = new FileOutputStream(path);
+                    downloadFile.write(downloadReply);
+
+                    File downloadedFile = new File(path);
+
+                    String downloadReplyCode = "F";
+                    if (downloadedFile.exists()) {
+                        downloadReplyCode = "S";
+                    }
+
+                    System.out.println(downloadReplyCode);
 
                     break;
 
                 default:
-                    System.out.println("Invalid Command!");
+                    if (!command.equals("Q")) {
+                        System.out.println("Invalid Command!");
+                    }
             } // end of switch-case
         }while (!command.equals("Q")); // Q for quit, while the user doesn't want to quit
     }

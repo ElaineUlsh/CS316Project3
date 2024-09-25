@@ -2,7 +2,6 @@ package tcp_file_project;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
@@ -22,12 +21,12 @@ public class TCPFileServer {
             // int numBytes = serveChannel.read(request);
             request.flip();
 
-            byte[] byteCommand = new byte[1]; // the number of bytes depends of the number of bytes that your command is
+            byte[] byteCommand = new byte[1]; // the number of bytes depends on the number of bytes that your command is
             request.get(byteCommand);
             String command = new String(byteCommand);
             System.out.println("\nReceived Command: " + command);
 
-            byte semicolon = 0x3B;
+            byte semicolon = 0x3B; // hex code of semicolon
 
             switch (command) { // mirrors the client side
                 case "D": // delete command
@@ -168,8 +167,14 @@ public class TCPFileServer {
                     break;
 
                 default: // optional
-                    System.out.println("Invalid command!");
-                    // send a notification to the client that an invalid command was sent
+                    String invalid = "Invalid Command!";
+
+                    System.out.println(invalid);
+
+                    ByteBuffer defaultReply = ByteBuffer.wrap(invalid.getBytes());
+                    serveChannel.write(defaultReply);
+                    serveChannel.close();
+
                     break;
             } // end of switch-case
         } // end of while loop
