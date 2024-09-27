@@ -62,8 +62,17 @@ public class TCPFileServer {
                     File[] fileNames = folder.listFiles();
 
                     String listReplyCode = "";
-                    for (int i = 0; i < fileNames.length; i++) {
-                        listReplyCode += fileNames[i].getName() + "\n";
+
+                    if (fileNames.length >= 1) {
+                        for (int i = 0; i < fileNames.length; i++) {
+                            listReplyCode += fileNames[i].getName() + "\n";
+                        }
+
+                        listReplyCode += "S";
+                    } else if (fileNames.length == 0) {
+                        listReplyCode = "There are no files";
+                    } else {
+                        listReplyCode = "F";
                     }
 
                     System.out.println(listReplyCode);

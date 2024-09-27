@@ -51,10 +51,6 @@ public class TCPFIleClient {
                     listChannel.write(listRequest);
                     listChannel.shutdownOutput();
 
-                    //TODO: receive server status code and tell user whether the file was successfully listed or list itself.
-
-                    //use while loop -- you may not be able to use everything all at once.
-
                     String listServerMessage = "List of Files: \n";
 
                     int bytesReadForListReply = 0;
@@ -120,6 +116,8 @@ public class TCPFIleClient {
                     uploadChannel.write(uploadRequest);
                     uploadChannel.shutdownOutput();
 
+                    // TODO: make sure that this can upload until the entire file to the buffer somehow
+
                     ByteBuffer uploadReplyBuffer = ByteBuffer.allocate(1024);
                     int bytesReadForUploadReply = uploadChannel.read(uploadReplyBuffer);
                     uploadChannel.close();
@@ -142,15 +140,14 @@ public class TCPFIleClient {
                     downloadChannel.write(downloadRequest);
                     downloadChannel.shutdownOutput();
 
+                    // TODO: use another byte buffer and then read from it after the entire file is on there
 
-                    int bytesReadForDownloadReply = 0;
-                    //while(bytesReadForListReply != -1) {
                     ByteBuffer downloadReplyBuffer = ByteBuffer.allocate(1024);
-                    bytesReadForDownloadReply = downloadChannel.read(downloadReplyBuffer);
-                    downloadChannel.close();
+                    int bytesReadForDownloadReply = downloadChannel.read(downloadReplyBuffer);
                     downloadReplyBuffer.flip();
                     byte[] downloadReply = new byte[bytesReadForDownloadReply];
                     downloadReplyBuffer.get(downloadReply);
+
 
                     String path = "ClientFiles/" + downloadFileName;
 
