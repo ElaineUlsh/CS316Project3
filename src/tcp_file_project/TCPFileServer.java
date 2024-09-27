@@ -18,7 +18,7 @@ public class TCPFileServer {
             SocketChannel serveChannel = listenChannel.accept();
 
             ByteBuffer request = ByteBuffer.allocate(1024);
-            // int numBytes = serveChannel.read(request);
+            serveChannel.read(request);
             request.flip();
 
             byte[] byteCommand = new byte[1]; // the number of bytes depends on the number of bytes that your command is
