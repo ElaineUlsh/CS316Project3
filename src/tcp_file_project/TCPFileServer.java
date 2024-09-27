@@ -1,12 +1,12 @@
 package tcp_file_project;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.file.Files;
 import java.util.Arrays;
 
 public class TCPFileServer {
@@ -122,7 +122,9 @@ public class TCPFileServer {
                     break;
 
                 case "U": // upload command
-                    byte[] uploadBytes = new byte[request.remaining()];
+                    int bytesFromUploadClient = request.remaining();
+                    byte[] uploadBytes = new byte[bytesFromUploadClient];
+
                     request.get(uploadBytes);
 
                     byte[] uploadFileNameBytes = new byte[1024];
@@ -132,16 +134,33 @@ public class TCPFileServer {
                         if (uploadBytes[i] == semicolon) {
                             uploadFileNameBytes = Arrays.copyOfRange(uploadBytes, 0, i);
                             newFileBytes = Arrays.copyOfRange(uploadBytes, i+1, uploadBytes.length);
+
+                            break;
                         }
+
                     }
+
+                    request.clear();
+
+
                     String uploadFileName = new String (uploadFileNameBytes);
 
                     System.out.println("File being uploaded: " + uploadFileName);
 
                     String path = "ServerFiles/" + uploadFileName;
 
-                    FileOutputStream uploadFile = new FileOutputStream(path);
-                    uploadFile.write(newFileBytes);
+                    FileOutputStream fos = new FileOutputStream(path);
+                    fos.write(newFileBytes);
+
+                    int uploadBytesRead;
+                    while((uploadBytesRead = serveChannel.read(request)) != -1) {
+                        request.flip();
+                        byte[] a = new byte[uploadBytesRead];
+                        request.get(a);
+                        fos.write(a);
+                        request.clear();
+                    }
+                    fos.close();
 
                     File uploadedFile = new File(path);
 
@@ -164,13 +183,25 @@ public class TCPFileServer {
                     System.out.println("File to delete: " + downloadFileName);
 
                     File downloadFile = new File("ServerFiles/" + downloadFileName); // for on our computers, a folder inside your project folder
-                    byte[] downloadReplyCode = new byte[1024];
+                    String downloadReplyCode = "F";
                     if (downloadFile.exists()) {
-                        downloadReplyCode = Files.readAllBytes(downloadFile.toPath());
+                        downloadReplyCode = "S";
                     }
 
-                    ByteBuffer downloadReply = ByteBuffer.wrap(downloadReplyCode);
+                    ByteBuffer downloadReply = ByteBuffer.wrap(downloadReplyCode.getBytes());
                     serveChannel.write(downloadReply);
+
+                    if (downloadFile.exists()) {
+                        FileInputStream fis = new FileInputStream("ServerFiles/" + downloadFileName);
+                        byte[] data = new byte[1024];
+                        int bytesRead = 0;
+                        while((bytesRead=fis.read(data)) != -1) {
+                            ByteBuffer buffer = ByteBuffer.wrap(data, 0, bytesRead);
+                            serveChannel.write(buffer);
+                        }
+                        fis.close();
+                    }
+
                     serveChannel.close();
 
                     break;

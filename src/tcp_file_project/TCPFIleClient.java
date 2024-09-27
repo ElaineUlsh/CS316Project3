@@ -1,6 +1,7 @@
 package tcp_file_project;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -53,18 +54,23 @@ public class TCPFIleClient {
 
                     String listServerMessage = "List of Files: \n";
 
-                    int bytesReadForListReply = 0;
+                    ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
+                    int bytesReadForListReply = listReplyBuffer.array().length;
                     while(bytesReadForListReply != -1) {
-                        ByteBuffer listReplyBuffer = ByteBuffer.allocate(1024);
                         bytesReadForListReply = listChannel.read(listReplyBuffer);
-
                         listReplyBuffer.flip();
-                        byte[] listReply = new byte[bytesReadForListReply];
-                        listReplyBuffer.get(listReply);
 
-                        String runningList = new String(listReply);
-                        listServerMessage += runningList;
+                        while (listReplyBuffer.hasRemaining()) {
+                            byte[] listReply = new byte[bytesReadForListReply];
+                            listReplyBuffer.get(listReply);
+
+                            String runningList = new String(listReply);
+                            listServerMessage += runningList;
+                        }
+
+                        listReplyBuffer.clear();
                     }
+
                     listChannel.close();
 
                     System.out.println(listServerMessage);
@@ -105,18 +111,20 @@ public class TCPFIleClient {
                     byte[] commandAndStringBytes = uploadBytes.getBytes();
                     byte[] justFileBytes = Files.readAllBytes(uploadFile.toPath());
 
-                    byte[] uploadFileBytes = new byte[commandAndStringBytes.length + justFileBytes.length];
-
-                    ByteBuffer uploadRequest = ByteBuffer.wrap(uploadFileBytes);
-                    uploadRequest.put(commandAndStringBytes);
-                    uploadRequest.put(justFileBytes);
-
                     SocketChannel uploadChannel = SocketChannel.open();
                     uploadChannel.connect(new InetSocketAddress(args[0], serverPort));
-                    uploadChannel.write(uploadRequest);
-                    uploadChannel.shutdownOutput();
+                    uploadChannel.write(ByteBuffer.wrap(commandAndStringBytes));
 
-                    // TODO: make sure that this can upload until the entire file to the buffer somehow
+                    FileInputStream fis = new FileInputStream("ClientFiles/" + uploadFileName);
+                    byte[] data = new byte[1024];
+                    int bytesRead = 0;
+                    while((bytesRead=fis.read(data)) != -1) {
+                        ByteBuffer buffer = ByteBuffer.wrap(data, 0, bytesRead);
+                        uploadChannel.write(buffer);
+                    }
+                    fis.close();
+
+                    uploadChannel.shutdownOutput();
 
                     ByteBuffer uploadReplyBuffer = ByteBuffer.allocate(1024);
                     int bytesReadForUploadReply = uploadChannel.read(uploadReplyBuffer);
@@ -140,28 +148,32 @@ public class TCPFIleClient {
                     downloadChannel.write(downloadRequest);
                     downloadChannel.shutdownOutput();
 
-                    // TODO: use another byte buffer and then read from it after the entire file is on there
-
-                    ByteBuffer downloadReplyBuffer = ByteBuffer.allocate(1024);
+                    ByteBuffer downloadReplyBuffer = ByteBuffer.allocate(1);
                     int bytesReadForDownloadReply = downloadChannel.read(downloadReplyBuffer);
                     downloadReplyBuffer.flip();
                     byte[] downloadReply = new byte[bytesReadForDownloadReply];
                     downloadReplyBuffer.get(downloadReply);
+                    String code = new String(downloadReply);
 
+                    if (code.equals("S")) {
+                        String path = "ClientFiles/" + downloadFileName;
 
-                    String path = "ClientFiles/" + downloadFileName;
+                        FileOutputStream fos = new FileOutputStream(path);
+                        ByteBuffer downloadData = ByteBuffer.allocate(1024);
 
-                    FileOutputStream downloadFile = new FileOutputStream(path);
-                    downloadFile.write(downloadReply);
-
-                    File downloadedFile = new File(path);
-
-                    String downloadReplyCode = "F";
-                    if (downloadedFile.exists()) {
-                        downloadReplyCode = "S";
+                        int downloadBytesRead;
+                        while((downloadBytesRead = downloadChannel.read(downloadData)) != -1) {
+                            downloadData.flip();
+                            byte[] a = new byte[downloadBytesRead];
+                            downloadData.get(a);
+                            fos.write(a);
+                            downloadData.clear();
+                        }
+                        fos.close();
                     }
+                    downloadChannel.close();
 
-                    System.out.println(downloadReplyCode);
+                    System.out.println(code);
 
                     break;
 
